@@ -1,45 +1,32 @@
 from pulp import *
 
-# Input
-entrada = input()
-numeros = [int(numero) for numero in entrada.split()]
-num_brinquedos = numeros[0]
-num_pacotes = numeros[1]
-max = numeros[2]
-brinquedos = []
-pacotes = []
-
-for i in range(num_brinquedos):
-    brinquedo = input()
-    brinquedos.append([int(numero) for numero in brinquedo.split()])
-for i in range(num_pacotes):
-    pacote = input()
-    pacotes.append([int(numero) for numero in pacote.split()])
+# Input melhorado
+num_brinquedos, num_pacotes, max_valor = map(int, input().split())
+brinquedos = [list(map(int, input().split())) for _ in range(num_brinquedos)]
+pacotes = [list(map(int, input().split())) for _ in range(num_pacotes)]
 
 # Problema
 prob = LpProblem("Problema", LpMaximize)
 
 # Variaveis
-vars_brinquedos = [LpVariable(f"x{i+1}", 0, brinquedos[i][1], LpInteger) for i in range(num_brinquedos)]
-vars_pacotes = [LpVariable(f"y{i+1}", 0, min([brinquedos[pacotes[i][0]-1][1], brinquedos[pacotes[i][1]-1][1], brinquedos[pacotes[i][2]-1][1]]), LpInteger) for i in range(num_pacotes)]
+vars_brinquedos = [LpVariable(f"x{i+1}", 0, brinquedo[1], LpInteger) for i, brinquedo in enumerate(brinquedos)]
+vars_pacotes = [LpVariable(f"y{i+1}", 0, min(brinquedos[pacote[0]-1][1] for pacote in pacotes[i:i+1]), LpInteger) for i in range(num_pacotes)]
+
 
 # Objetivo
-prob += lpSum(brinquedos[i][0] * vars_brinquedos[i] for i in range(num_brinquedos)) + lpSum(pacotes[i][3] * vars_pacotes[i] for i in range(num_pacotes))
+prob += lpDot([brinquedo[0] for brinquedo in brinquedos], vars_brinquedos) + lpDot([pacote[3] for pacote in pacotes], vars_pacotes)
 
 # Restricoes das capacidades de producao de cada brinquedo
 for i in range(num_brinquedos):
-    lista = [0 for i in range(num_pacotes)]
-    for j in range(num_pacotes):
-        if (i == (pacotes[j][0]-1) or i == (pacotes[j][1]-1) or i == (pacotes[j][2]-1)):
-            lista[j] = 1
-    prob += vars_brinquedos[i] + lpSum([lista[k]*vars_pacotes[k] for k in range(num_pacotes)]) <= brinquedos[i][1]
+    indices_pacotes = [j for j, pacote in enumerate(pacotes) if i+1 in pacote[:3]]
+    prob += vars_brinquedos[i] + lpDot([vars_pacotes[k] for k in indices_pacotes], [1]*len(indices_pacotes)) <= brinquedos[i][1]
+    # LpDot evita a construcao de uma lista temporaria
 
 # Restricoes do numero de diferentes brinquedos passiveis de serem produzidos
-prob += lpSum(vars_brinquedos[i] for i in range(num_brinquedos)) + lpSum(3*vars_pacotes[j] for j in range(num_pacotes)) <= max
+prob += lpDot(vars_brinquedos, [1]*num_brinquedos) + lpDot(vars_pacotes, [3]*num_pacotes) <= max_valor
 
 # Resolucao
 prob.writeLP("p3.lp")
-
-prob.solve()
+prob.solve(GLPK(msg=0))
 
 print(int(value(prob.objective)))
