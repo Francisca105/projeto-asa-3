@@ -19,11 +19,10 @@ prob += lpDot([brinquedo[0] for brinquedo in brinquedos], vars_brinquedos) + lpD
 # Restricoes das capacidades de producao de cada brinquedo
 for i in range(num_brinquedos):
     indices_pacotes = [j for j, pacote in enumerate(pacotes) if i+1 in pacote[:3]]
-    prob += vars_brinquedos[i] + lpDot([vars_pacotes[k] for k in indices_pacotes], [1]*len(indices_pacotes)) <= brinquedos[i][1]
-    # LpDot evita a construcao de uma lista temporaria
+    prob += lpSum(vars_pacotes[k] for k in indices_pacotes) + vars_brinquedos[i] <= brinquedos[i][1]
 
 # Restricoes do numero de diferentes brinquedos passiveis de serem produzidos
-prob += lpDot(vars_brinquedos, [1]*num_brinquedos) + lpDot(vars_pacotes, [3]*num_pacotes) <= max_valor
+prob += lpSum(vars_brinquedos) + 3 * lpSum(vars_pacotes) <= max_valor
 
 # Resolucao
 prob.writeLP("p3.lp")
