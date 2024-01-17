@@ -49,7 +49,7 @@ test:
 	@(diff test_res/test_effective_out test_res/test_expected_out > test_res/00_diff && echo "Tests passed.") || echo "Some tests failed."
 
 clean:
-	$(RM) -r test_res
+	$(RM) -r test_res p3.lp
 
 checkpy:
 	@echo $(PY)
